@@ -1,0 +1,124 @@
+<html>
+  <title>Click "S" to Start!</title>
+  <script>
+    const getRandomLetter = () => (
+      String.fromCharCode(Math.floor(Math.random()*(90 - 65 + 1)) + 65)
+    );
+    class Intervals {
+      constructor() {
+        this.intervals = []
+      }
+
+      addInterval(interval) {
+        this.intervals.push(interval);
+      }
+
+      clearAllIntervals() {
+        this.intervals.forEach((interval) => clearInterval(interval));
+        this.intervals = [];
+      }
+    }
+    const letterContainerCount = 10;
+    const initSpeed = 1000;
+    const maxSpeed = 100;
+    const levelGapSpeed = 100;
+    const increaseSpeedGap = 5000;
+
+    const letterQueueIntervals = new Intervals();
+    const gameProcessControlIntervals = new Intervals();
+    let currentSpeed = initSpeed;
+    let score = 0;
+    let letterQueue = [];
+    let isGameStarted = false;
+
+    const initGameParams = () => {
+      currentSpeed = initSpeed;
+      score = 0;
+      letterQueue = [];
+      isGameStarted = false;
+    };
+
+    const isPositionExistLetter = (position) => letterQueue.some((letter) => (
+      letter.position === position
+    ));
+
+    const startGame = () => {
+      initGameParams();
+      isGameStarted = true;
+      const startAddAndMoveLetterInterval = (speed) => {
+        letterQueueIntervals.clearAllIntervals();
+        letterQueueIntervals.addInterval(setInterval(() => {
+          if (!isPositionExistLetter(letterContainerCount)) {
+            letterQueue.push({
+              value: getRandomLetter(),
+              position: letterContainerCount,
+            });
+          }
+        }, speed));
+        letterQueueIntervals.addInterval(setInterval(() => {
+          const getNextPosition = (position) => (Math.max(0, position - 1));
+          const isPositionExistLetter = (position) => letterQueue.some((letter) => (
+            letter.position === position
+          ));
+          letterQueue = letterQueue.map((letter) => ({
+            ...letter,
+            position: isPositionExistLetter(getNextPosition(letter.position))
+              ? letter.position
+              : getNextPosition(letter.position)
+          }));
+        }, speed));
+      }
+
+      const startGameProcessControlInterval = () => {
+        gameProcessControlIntervals.addInterval(setInterval(() => {
+          currentSpeed = Math.max(maxSpeed, currentSpeed - levelGapSpeed);
+          startAddAndMoveLetterInterval(currentSpeed);
+        }, increaseSpeedGap));
+
+        gameProcessControlIntervals.addInterval(setInterval(() => {
+          let currentShowView = '';
+          for (let index = 0; index < letterContainerCount; index += 1) {
+            const getLetterOnTheIndex = () => (
+              letterQueue.find(({ position }) => position === index)
+            );
+            if (index === getLetterOnTheIndex()?.position) {
+              currentShowView = `${currentShowView}${getLetterOnTheIndex().value}`;
+            } else {
+              currentShowView = `${currentShowView}_`;
+            }
+          }
+          document.getElementsByTagName('title')[0].innerText = currentShowView;
+        }, maxSpeed));
+
+        gameProcessControlIntervals.addInterval(setInterval(() => {
+          if (letterQueue.length >= letterContainerCount) {
+            letterQueueIntervals.clearAllIntervals();
+            gameProcessControlIntervals.clearAllIntervals();
+            isGameStarted = false;
+            document.getElementsByTagName('title')[0].innerText = `Score: ✨${score}✨, Press "S" Again!`;
+          }
+        }, maxSpeed));
+      };
+
+      startAddAndMoveLetterInterval(currentSpeed);
+      startGameProcessControlInterval();
+    };
+
+    addEventListener('keydown', ({ key }) => {
+      if (isGameStarted) return;
+      if (String(key).toUpperCase() === 'S') {
+        startGame();
+      }
+    });
+
+    addEventListener('keydown', ({ key }) => {
+      if (isGameStarted && letterQueue.length > 0) {
+        const firstLetter = letterQueue[0].value;
+        if (String(key).toUpperCase() === firstLetter) {
+          score += 1;
+          letterQueue.shift();
+        }
+      }
+    });
+  </script>
+</html>
